@@ -1,36 +1,48 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { motion, AnimatePresence, useAnimation } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import confetti from "canvas-confetti";
+import { NO_EXPRESSIONS } from "@/constants/expressions";
 
 export const HeartCatcher = () => {
     const [level, setLevel] = useState(0);
     const [accepted, setAccepted] = useState(false);
     const [noButtonPos, setNoButtonPos] = useState({ x: 0, y: 0 });
-    const [isHovered, setIsHovered] = useState(false);
     const containerRef = useRef<HTMLDivElement>(null);
-    const controls = useAnimation();
 
-    const handleNoHover = () => {
-        if (level >= 5) return; // Logic theft already happened or max level reached
+    const name = process.env.NEXT_PUBLIC_VALENTINE_NAME || "Valentine";
+    const MAX_LEVEL = 10;
+
+    const handleNoInteraction = () => {
+        if (level >= MAX_LEVEL) return;
 
         const nextLevel = level + 1;
         setLevel(nextLevel);
 
-        // Progressive Evasion Logic
-        if (nextLevel === 1) {
-            // Small hop
-            setNoButtonPos({ x: 50, y: -20 });
-        } else if (nextLevel >= 2 && nextLevel < 5) {
-            // Random jump within container
-            if (containerRef.current) {
-                const rect = containerRef.current.getBoundingClientRect();
-                const padding = 100;
-                const newX = (Math.random() - 0.5) * (rect.width - padding);
-                const newY = (Math.random() - 0.5) * (rect.height - padding);
-                setNoButtonPos({ x: newX, y: newY });
+        // Dynamic Evasion Logic for 10 Levels
+        if (containerRef.current) {
+            const rect = containerRef.current.getBoundingClientRect();
+            const padding = 120;
+
+            let newX = 0;
+            let newY = 0;
+
+            if (nextLevel < 3) {
+                // Levels 1-2: Simple slides
+                newX = (nextLevel === 1 ? 40 : -60);
+                newY = (nextLevel === 1 ? -20 : 30);
+            } else {
+                // Levels 3-9: Randomized jumps within bounds
+                const boundsX = (rect.width - padding) / 2;
+                const boundsY = (rect.height - padding) / 2;
+
+                // Ensure it doesn't just jump to the exact same spot
+                newX = (Math.random() - 0.5) * boundsX * 2;
+                newY = (Math.random() - 0.5) * boundsY * 2;
             }
+
+            setNoButtonPos({ x: newX, y: newY });
         }
     };
 
@@ -56,9 +68,7 @@ export const HeartCatcher = () => {
     };
 
     const getNoButtonText = () => {
-        if (level >= 5) return "Yes! ❤️";
-        const expressions = ["No", "Are you sure?", "Think again!", "Pwease?", "Wait...", "No way!"];
-        return expressions[Math.min(level, expressions.length - 1)];
+        return NO_EXPRESSIONS[Math.min(level, NO_EXPRESSIONS.length - 1)];
     };
 
     if (accepted) {
@@ -78,8 +88,8 @@ export const HeartCatcher = () => {
                 >
                     ❤️
                 </motion.div>
-                <h1 className="text-5xl font-bold text-primary drop-shadow-lg">
-                    Yay! See you on the 14th! 🥰
+                <h1 className="text-5xl font-bold text-primary drop-shadow-lg px-4">
+                    Yay! See you on the 14th, {name}! 🥰
                 </h1>
                 <p className="text-xl text-secondary">You made me the luckiest person!</p>
             </motion.div>
@@ -89,7 +99,7 @@ export const HeartCatcher = () => {
     return (
         <div
             ref={containerRef}
-            className="relative flex flex-col items-center justify-center min-h-[60vh] w-full max-w-4xl p-8 rounded-3xl bg-white/30 backdrop-blur-md border border-white/50 shadow-2xl overflow-hidden"
+            className="relative flex flex-col items-center justify-center min-h-[70vh] w-full max-w-4xl p-8 rounded-3xl bg-white/30 backdrop-blur-md border border-white/50 shadow-2xl overflow-hidden select-none"
         >
             <AnimatePresence mode="wait">
                 <motion.div
@@ -100,21 +110,21 @@ export const HeartCatcher = () => {
                     className="text-center mb-12"
                 >
                     <div className="text-6xl mb-4">💝</div>
-                    <h1 className="text-4xl md:text-6xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-                        Will you be my Valentine?
+                    <h1 className="text-4xl md:text-6xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent px-4">
+                        {name}, will you be my Valentine?
                     </h1>
                 </motion.div>
             </AnimatePresence>
 
-            <div className="relative flex flex-wrap items-center justify-center gap-8 min-h-[200px] w-full">
+            <div className="relative flex flex-wrap items-center justify-center gap-8 min-h-[300px] w-full">
                 {/* YES BUTTON */}
                 <motion.button
                     onClick={handleYesClick}
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.9 }}
                     animate={{
-                        scale: 1 + level * 0.1,
-                        boxShadow: level > 3 ? "0 0 20px rgba(255, 77, 109, 0.5)" : "none"
+                        scale: 1 + level * 0.15, // Grows faster over 10 levels
+                        boxShadow: level > 5 ? "0 0 30px rgba(255, 77, 109, 0.6)" : "none"
                     }}
                     className="px-8 py-4 bg-primary text-white text-2xl font-bold rounded-full shadow-lg hover:bg-primary/90 transition-colors z-10"
                 >
@@ -123,36 +133,46 @@ export const HeartCatcher = () => {
 
                 {/* NO BUTTON */}
                 <motion.button
-                    onMouseEnter={handleNoHover}
-                    onClick={level >= 5 ? handleYesClick : undefined}
+                    onMouseEnter={handleNoInteraction}
+                    onTouchStart={(e) => {
+                        e.preventDefault(); // Prevent accidental selection
+                        handleNoInteraction();
+                    }}
+                    onClick={level >= MAX_LEVEL ? handleYesClick : (e) => {
+                        // Action of clicking it if it somehow gets clicked
+                        handleNoInteraction();
+                    }}
                     animate={{
                         x: noButtonPos.x,
                         y: noButtonPos.y,
-                        scale: Math.max(0.5, 1 - level * 0.1),
-                        opacity: level === 4 ? [1, 0.5, 1] : 1,
+                        scale: Math.max(0.4, 1 - level * 0.08),
+                        rotate: level >= 7 ? [0, -5, 5, 0] : 0,
+                        opacity: level === 8 ? [1, 0.3, 1] : 1,
                     }}
                     transition={{
                         type: "spring",
-                        stiffness: 300,
-                        damping: 20,
-                        opacity: { duration: 0.2, repeat: level === 4 ? Infinity : 0 }
+                        stiffness: 400,
+                        damping: 25,
+                        rotate: { duration: 0.1, repeat: level >= 7 ? Infinity : 0 },
+                        opacity: { duration: 0.3, repeat: level === 8 ? Infinity : 0 }
                     }}
-                    className={`px-8 py-4 border-2 border-primary text-primary text-2xl font-bold rounded-full transition-colors ${level >= 5 ? "bg-primary text-white" : "bg-white/50 hover:bg-primary hover:text-white"
+                    className={`px-8 py-4 border-2 border-primary text-primary text-2xl font-bold rounded-full transition-colors whitespace-nowrap ${level >= MAX_LEVEL ? "bg-primary text-white" : "bg-white/60 hover:bg-primary hover:text-white"
                         }`}
                 >
                     {getNoButtonText()}
                 </motion.button>
             </div>
 
-            {level > 0 && (
-                <motion.p
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="absolute bottom-8 text-secondary font-medium italic"
-                >
-                    Difficulty Level: {level}
-                </motion.p>
-            )}
+            {/* Heart decoration that follows level */}
+            <motion.div
+                animate={{
+                    opacity: level / MAX_LEVEL,
+                    scale: 0.5 + (level / MAX_LEVEL)
+                }}
+                className="absolute top-4 right-4 text-4xl pointer-events-none"
+            >
+                💖
+            </motion.div>
         </div>
     );
 };
