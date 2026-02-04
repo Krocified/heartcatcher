@@ -22,11 +22,11 @@ export const HeartCatcher = () => {
     const name = process.env.NEXT_PUBLIC_VALENTINE_NAME || "Valentine";
     const MAX_LEVEL = 10;
 
-    // Initialize position to be somewhat central but offset from Yes button
+    // Initialize position to the bottom right corner
     useEffect(() => {
         if (typeof window !== "undefined") {
-            const initialX = window.innerWidth * 0.6;
-            const initialY = window.innerHeight * 0.5;
+            const initialX = window.innerWidth - 180; // Estimated button width + margin
+            const initialY = window.innerHeight - 100; // Estimated button height + margin
             // eslint-disable-next-line react-hooks/set-state-in-effect
             setNoButtonPos({ x: initialX, y: initialY });
             posRef.current = { x: initialX, y: initialY };
@@ -145,15 +145,11 @@ export const HeartCatcher = () => {
         setAccepted(true);
     };
 
-    if (accepted) {
-        return <SuccessScreen name={name} />;
-    }
-
     if (!isInitialized) return null; // Prevent hydration mismatch or flash
 
     return (
         <div
-            className="fixed inset-0 w-screen h-screen overflow-hidden"
+            className="fixed inset-0 w-screen h-screen overflow-hidden flex items-center justify-center"
             style={{
                 backgroundImage: 'url(/background.jpg)',
                 backgroundSize: 'cover',
@@ -161,37 +157,42 @@ export const HeartCatcher = () => {
                 backgroundRepeat: 'no-repeat'
             }}
         >
+            {accepted ? (
+                <SuccessScreen name={name} />
+            ) : (
+                <>
+                    {/* Centered Content (Header & Yes Button) */}
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center justify-center gap-12 pointer-events-none">
+                        <div className="pointer-events-auto">
+                            <QuestionHeader name={name} />
+                        </div>
+                        <div className="pointer-events-auto">
+                            <YesButton level={level} onClick={handleYesClick} />
+                        </div>
+                    </div>
 
-            {/* Centered Content (Header & Yes Button) */}
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center justify-center gap-12 pointer-events-none">
-                <div className="pointer-events-auto">
-                    <QuestionHeader name={name} />
-                </div>
-                <div className="pointer-events-auto">
-                    <YesButton level={level} onClick={handleYesClick} />
-                </div>
-            </div>
+                    {/* Free Roaming No Button */}
+                    <div
+                        className="absolute pointer-events-auto transition-transform duration-75 ease-linear will-change-transform"
+                        style={{
+                            left: 0,
+                            top: 0,
+                            transform: `translate(${noButtonPos.x}px, ${noButtonPos.y}px)`,
+                        }}
+                    >
+                        <NoButton
+                            ref={noButtonRef}
+                            level={level}
+                            maxLevel={MAX_LEVEL}
+                            position={{ x: 0, y: 0 }} // Managed by parent div transform
+                            onInteraction={handleNoInteraction}
+                            onClick={level >= MAX_LEVEL ? handleYesClick : handleNoInteraction}
+                        />
+                    </div>
 
-            {/* Free Roaming No Button */}
-            <div
-                className="absolute pointer-events-auto transition-transform duration-75 ease-linear will-change-transform"
-                style={{
-                    left: 0,
-                    top: 0,
-                    transform: `translate(${noButtonPos.x}px, ${noButtonPos.y}px)`,
-                }}
-            >
-                <NoButton
-                    ref={noButtonRef}
-                    level={level}
-                    maxLevel={MAX_LEVEL}
-                    position={{ x: 0, y: 0 }} // Managed by parent div transform
-                    onInteraction={handleNoInteraction}
-                    onClick={level >= MAX_LEVEL ? handleYesClick : handleNoInteraction}
-                />
-            </div>
-
-            <HeartDecorator level={level} maxLevel={MAX_LEVEL} />
+                    <HeartDecorator level={level} maxLevel={MAX_LEVEL} />
+                </>
+            )}
         </div>
     );
 };

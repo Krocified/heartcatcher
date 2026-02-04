@@ -8,8 +8,12 @@ interface QuestionHeaderProps {
 
 export const QuestionHeader: React.FC<QuestionHeaderProps> = ({ name }) => {
     return (
-        <div className="text-center mb-12">
-            <div className="text-6xl mb-4">💝</div>
+        <div className="text-center mb-12 flex flex-col items-center">
+            <img
+                src="/brown-bear-brown.gif"
+                alt="Cute Bear"
+                className="w-48 h-48 object-contain mb-4"
+            />
             <h1 className="text-4xl md:text-6xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent px-4">
                 {name}, will you be my Valentine?
             </h1>

@@ -37,16 +37,13 @@ export const SuccessScreen: React.FC<SuccessScreenProps> = ({ name }) => {
             animate={{ scale: 1, opacity: 1 }}
             className="text-center space-y-8"
         >
-            <motion.div
-                animate={{
-                    scale: [1, 1.2, 1],
-                    rotate: [0, 10, -10, 0],
-                }}
-                transition={{ duration: 2, repeat: Infinity }}
-                className="text-9xl"
-            >
-                ❤️
-            </motion.div>
+            <div className="flex justify-center">
+                <img
+                    src="/brown-heart.gif"
+                    alt="Success Heart"
+                    className="w-48 h-48 object-contain"
+                />
+            </div>
             <h1 className="text-4xl md:text-6xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent px-4">
                 Yay! See you on the 14th, {name}!
             </h1>

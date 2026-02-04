@@ -12,9 +12,14 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const name = process.env.NEXT_PUBLIC_VALENTINE_NAME || "Valentine";
+
 export const metadata: Metadata = {
-  title: "Be My Valentine? ❤️",
+  title: `Dear ${name}, will you be my Valentine?`,
   description: "A very special question for a very special person.",
+  icons: {
+    icon: "/favicon.png",
+  },
 };
 
 export default function RootLayout({
