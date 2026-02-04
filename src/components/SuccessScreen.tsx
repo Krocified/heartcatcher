@@ -2,6 +2,7 @@
 
 import React, { useEffect } from "react";
 import { motion } from "framer-motion";
+import Image from "next/image";
 import confetti from "canvas-confetti";
 
 interface SuccessScreenProps {
@@ -38,10 +39,12 @@ export const SuccessScreen: React.FC<SuccessScreenProps> = ({ name }) => {
             className="text-center space-y-8"
         >
             <div className="flex justify-center">
-                <img
+                <Image
                     src="/brown-heart.gif"
                     alt="Success Heart"
-                    className="w-48 h-48 object-contain"
+                    width={192}
+                    height={192}
+                    className="object-contain"
                 />
             </div>
             <h1 className="text-4xl md:text-6xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent px-4">
