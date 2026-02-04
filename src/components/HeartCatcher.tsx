@@ -27,7 +27,6 @@ export const HeartCatcher = () => {
         if (typeof window !== "undefined") {
             const initialX = window.innerWidth * 0.6;
             const initialY = window.innerHeight * 0.5;
-            // eslint-disable-next-line react-hooks/exhaustive-deps
             setNoButtonPos({ x: initialX, y: initialY });
             posRef.current = { x: initialX, y: initialY };
             setIsInitialized(true);
@@ -123,6 +122,19 @@ export const HeartCatcher = () => {
             nextX = Math.max(minX, Math.min(maxX, nextX));
             nextY = Math.max(minY, Math.min(maxY, nextY));
 
+            // Corner Teleportation Logic
+            // If hitting both X and Y bounds, it's in a corner. 
+            // Teleport to a random spot far away.
+            const isAtEdgeX = nextX === minX || nextX === maxX;
+            const isAtEdgeY = nextY === minY || nextY === maxY;
+
+            if (isAtEdgeX && isAtEdgeY) {
+                // Teleport to a random position in the middle 60% of the screen
+                // to ensure it doesn't just teleport to another corner immediately
+                nextX = minX + (Math.random() * 0.6 + 0.2) * (maxX - minX);
+                nextY = minY + (Math.random() * 0.6 + 0.2) * (maxY - minY);
+            }
+
             posRef.current = { x: nextX, y: nextY };
             setNoButtonPos({ x: nextX, y: nextY });
         } else {
@@ -175,7 +187,7 @@ export const HeartCatcher = () => {
                     ref={noButtonRef}
                     level={level}
                     maxLevel={MAX_LEVEL}
-                    position={{ x: 0, y: 0 }} // Managed by parent div div transform
+                    position={{ x: 0, y: 0 }} // Managed by parent div transform
                     onInteraction={handleNoInteraction}
                     onClick={level >= MAX_LEVEL ? handleYesClick : handleNoInteraction}
                 />
