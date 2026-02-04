@@ -47,9 +47,10 @@ export const SuccessScreen: React.FC<SuccessScreenProps> = ({ name }) => {
             >
                 ❤️
             </motion.div>
-            <h1 className="text-5xl font-bold text-primary drop-shadow-lg px-4">
-                Yay! See you on the 14th, {name}! 🥰
+            <h1 className="text-4xl md:text-6xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent px-4">
+                Yay! See you on the 14th, {name}!
             </h1>
+            <div className="text-4xl md:text-6xl">🥰</div>
             <p className="text-xl text-secondary">You made me the luckiest person!</p>
         </motion.div>
     );

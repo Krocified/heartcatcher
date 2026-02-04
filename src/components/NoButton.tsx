@@ -32,19 +32,24 @@ export const NoButton = React.forwardRef<HTMLButtonElement, NoButtonProps>(({
                 onInteraction();
             }}
             onClick={onClick}
+            whileHover={level >= maxLevel ? { scale: 1.1 } : {}}
+            whileTap={level >= maxLevel ? { scale: 0.95 } : {}}
             animate={{
                 x: position.x,
                 y: position.y,
-                scale: Math.max(0.4, 1 - level * 0.08),
-                rotate: level >= 7 ? [0, -5, 5, 0] : 0,
-                opacity: level === 8 ? [1, 0.3, 1] : 1,
+                scale: level >= maxLevel ? 1 : Math.max(0.4, 1 - level * 0.08), // Revert to 1 at max level
+                rotate: level >= maxLevel ? 0 : [0, -2, 2, -2, 0], // Stop shaking at max level
+                opacity: level >= maxLevel ? 1 : Math.max(0.6, 1 - level * 0.04),
             }}
             transition={{
                 type: "spring",
-                stiffness: 400,
-                damping: 25,
-                rotate: { duration: 0.1, repeat: level >= 7 ? Infinity : 0 },
-                opacity: { duration: 0.3, repeat: level === 8 ? Infinity : 0 }
+                stiffness: 300,
+                damping: 20,
+                rotate: level >= maxLevel ? {} : {
+                    repeat: Infinity,
+                    duration: Math.max(0.1, 0.5 - level * 0.04),
+                    ease: "easeInOut"
+                }
             }}
             className={`px-8 py-4 border-2 border-primary text-primary text-2xl font-bold rounded-full transition-colors whitespace-nowrap ${level >= maxLevel ? "bg-primary text-white" : "bg-white/60 hover:bg-primary hover:text-white"
                 }`}

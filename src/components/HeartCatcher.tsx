@@ -27,6 +27,7 @@ export const HeartCatcher = () => {
         if (typeof window !== "undefined") {
             const initialX = window.innerWidth * 0.6;
             const initialY = window.innerHeight * 0.5;
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setNoButtonPos({ x: initialX, y: initialY });
             posRef.current = { x: initialX, y: initialY };
             setIsInitialized(true);
@@ -65,8 +66,6 @@ export const HeartCatcher = () => {
         const mouseY = e.clientY;
 
         // Button Center logic
-        // We use posRef for source of truth to avoid layout thrash reads if possible, 
-        // but rect is safer for size.
         const currentX = posRef.current.x;
         const currentY = posRef.current.y;
         const centerX = currentX + btnW / 2;
@@ -83,7 +82,6 @@ export const HeartCatcher = () => {
 
             // Normalized push vector
             const strength = (threshold - distance) / threshold;
-            // Push harder as it gets closer
             const pushFactor = 30 * strength;
 
             let moveX = (dx / (distance || 1)) * pushFactor;
@@ -93,15 +91,13 @@ export const HeartCatcher = () => {
             moveX += (Math.random() - 0.5) * 5;
             moveY += (Math.random() - 0.5) * 5;
 
-            let nextX = currentX + moveX * 5; // Multiplier for speed
-            let nextY = currentY + moveY * 5;
+            let nextX = currentX + moveX * 25; // Increased speed multiplier
+            let nextY = currentY + moveY * 25;
 
             // Strict Clamping to Viewport
             const viewportW = window.innerWidth;
             const viewportH = window.innerHeight;
 
-            // Ensure we don't go off screen (0 to MaxWidth - BtnWidth)
-            // Add a small margin (padding) so it doesn't touch the absolute edge
             const margin = 20;
             const minX = margin;
             const minY = margin;
@@ -110,11 +106,9 @@ export const HeartCatcher = () => {
 
             // Wall sliding logic
             if (nextX <= minX || nextX >= maxX) {
-                // If hitting X wall, redirect force to Y
                 moveY += Math.sign(dy) * 20;
             }
             if (nextY <= minY || nextY >= maxY) {
-                // If hitting Y wall, redirect force to X
                 moveX += Math.sign(dx) * 20;
             }
 
@@ -123,14 +117,10 @@ export const HeartCatcher = () => {
             nextY = Math.max(minY, Math.min(maxY, nextY));
 
             // Corner Teleportation Logic
-            // If hitting both X and Y bounds, it's in a corner. 
-            // Teleport to a random spot far away.
             const isAtEdgeX = nextX === minX || nextX === maxX;
             const isAtEdgeY = nextY === minY || nextY === maxY;
 
             if (isAtEdgeX && isAtEdgeY) {
-                // Teleport to a random position in the middle 60% of the screen
-                // to ensure it doesn't just teleport to another corner immediately
                 nextX = minX + (Math.random() * 0.6 + 0.2) * (maxX - minX);
                 nextY = minY + (Math.random() * 0.6 + 0.2) * (maxY - minY);
             }
@@ -162,12 +152,20 @@ export const HeartCatcher = () => {
     if (!isInitialized) return null; // Prevent hydration mismatch or flash
 
     return (
-        <div className="fixed inset-0 w-screen h-screen overflow-hidden bg-[var(--background)]">
+        <div
+            className="fixed inset-0 w-screen h-screen overflow-hidden"
+            style={{
+                backgroundImage: 'url(/background.jpg)',
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                backgroundRepeat: 'no-repeat'
+            }}
+        >
 
             {/* Centered Content (Header & Yes Button) */}
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center justify-center gap-12 pointer-events-none">
                 <div className="pointer-events-auto">
-                    <QuestionHeader name={name} level={level} />
+                    <QuestionHeader name={name} />
                 </div>
                 <div className="pointer-events-auto">
                     <YesButton level={level} onClick={handleYesClick} />
