@@ -2,12 +2,11 @@
 
 import React, { useState, useEffect } from "react";
 import { SuccessScreen } from "./SuccessScreen";
-import { RunningNoButtonGame } from "./games";
+import { RunningNoButtonGame, FindNoButtonGame } from "./games";
 import type { GameProps } from "@/types/game";
 
-const AVAILABLE_GAMES: React.ComponentType<GameProps>[] = [
-    RunningNoButtonGame,
-];
+const DESKTOP_GAMES = [RunningNoButtonGame, FindNoButtonGame];
+const MOBILE_GAMES = [FindNoButtonGame];
 
 export const HeartCatcher = () => {
     const [accepted, setAccepted] = useState(false);
@@ -16,10 +15,11 @@ export const HeartCatcher = () => {
     const name = process.env.NEXT_PUBLIC_VALENTINE_NAME || "Valentine";
 
     useEffect(() => {
-        // Randomly select a game on mount
-        const randomGame = AVAILABLE_GAMES[Math.floor(Math.random() * AVAILABLE_GAMES.length)];
+        const isMobile = window.innerWidth < 768;
+        const gamePool = isMobile ? MOBILE_GAMES : DESKTOP_GAMES;
+        const selectedGame = gamePool[Math.floor(Math.random() * gamePool.length)];
         // eslint-disable-next-line react-hooks/set-state-in-effect
-        setSelectedGame(() => randomGame);
+        setSelectedGame(() => selectedGame);
     }, []);
 
     const handleAccept = () => setAccepted(true);
