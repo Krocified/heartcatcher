@@ -1,178 +1,187 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import confetti from "canvas-confetti";
-import { NO_EXPRESSIONS } from "@/constants/expressions";
+import React, { useState, useRef, useEffect, useCallback } from "react";
+import { SuccessScreen } from "./SuccessScreen";
+import { QuestionHeader } from "./QuestionHeader";
+import { YesButton } from "./YesButton";
+import { NoButton } from "./NoButton";
+import { HeartDecorator } from "./HeartDecorator";
 
 export const HeartCatcher = () => {
     const [level, setLevel] = useState(0);
     const [accepted, setAccepted] = useState(false);
+
+    // Position state for NoButton (absolute coordinates)
     const [noButtonPos, setNoButtonPos] = useState({ x: 0, y: 0 });
-    const containerRef = useRef<HTMLDivElement>(null);
+    const [isInitialized, setIsInitialized] = useState(false);
+
+    const noButtonRef = useRef<HTMLButtonElement>(null);
+    const avoidanceTimerRef = useRef<NodeJS.Timeout | null>(null);
+    const posRef = useRef({ x: 0, y: 0 });
 
     const name = process.env.NEXT_PUBLIC_VALENTINE_NAME || "Valentine";
     const MAX_LEVEL = 10;
 
-    const handleNoInteraction = () => {
+    // Initialize position to be somewhat central but offset from Yes button
+    useEffect(() => {
+        if (typeof window !== "undefined") {
+            const initialX = window.innerWidth * 0.6;
+            const initialY = window.innerHeight * 0.5;
+            // eslint-disable-next-line react-hooks/exhaustive-deps
+            setNoButtonPos({ x: initialX, y: initialY });
+            posRef.current = { x: initialX, y: initialY };
+            setIsInitialized(true);
+        }
+    }, []);
+
+    const handleNoInteraction = useCallback(() => {
         if (level >= MAX_LEVEL) return;
+        setLevel(prev => Math.min(prev + 1, MAX_LEVEL));
+    }, [level, MAX_LEVEL]);
 
-        const nextLevel = level + 1;
-        setLevel(nextLevel);
+    const startTicking = useCallback(() => {
+        if (avoidanceTimerRef.current) return;
+        avoidanceTimerRef.current = setInterval(() => {
+            handleNoInteraction();
+        }, 2000);
+    }, [handleNoInteraction]);
 
-        // Dynamic Evasion Logic for 10 Levels
-        if (containerRef.current) {
-            const rect = containerRef.current.getBoundingClientRect();
-            const padding = 120;
+    const stopTicking = useCallback(() => {
+        if (avoidanceTimerRef.current) {
+            clearInterval(avoidanceTimerRef.current);
+            avoidanceTimerRef.current = null;
+        }
+    }, []);
 
-            let newX = 0;
-            let newY = 0;
+    const handleMouseMove = useCallback((e: MouseEvent) => {
+        if (accepted || level >= MAX_LEVEL || !noButtonRef.current) return;
 
-            if (nextLevel < 3) {
-                // Levels 1-2: Simple slides
-                newX = (nextLevel === 1 ? 40 : -60);
-                newY = (nextLevel === 1 ? -20 : 30);
-            } else {
-                // Levels 3-9: Randomized jumps within bounds
-                const boundsX = (rect.width - padding) / 2;
-                const boundsY = (rect.height - padding) / 2;
+        // Current Button State
+        const buttonRect = noButtonRef.current.getBoundingClientRect();
+        const btnW = buttonRect.width || 100; // Fallback width
+        const btnH = buttonRect.height || 50;  // Fallback height
 
-                // Ensure it doesn't just jump to the exact same spot
-                newX = (Math.random() - 0.5) * boundsX * 2;
-                newY = (Math.random() - 0.5) * boundsY * 2;
+        // Mouse Position
+        const mouseX = e.clientX;
+        const mouseY = e.clientY;
+
+        // Button Center logic
+        // We use posRef for source of truth to avoid layout thrash reads if possible, 
+        // but rect is safer for size.
+        const currentX = posRef.current.x;
+        const currentY = posRef.current.y;
+        const centerX = currentX + btnW / 2;
+        const centerY = currentY + btnH / 2;
+
+        const dx = centerX - mouseX;
+        const dy = centerY - mouseY;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        const threshold = 200; // Increased threshold for earlier reaction
+
+        if (distance < threshold) {
+            startTicking();
+
+            // Normalized push vector
+            const strength = (threshold - distance) / threshold;
+            // Push harder as it gets closer
+            const pushFactor = 30 * strength;
+
+            let moveX = (dx / (distance || 1)) * pushFactor;
+            let moveY = (dy / (distance || 1)) * pushFactor;
+
+            // Add some jitter/randomness for unpredictability
+            moveX += (Math.random() - 0.5) * 5;
+            moveY += (Math.random() - 0.5) * 5;
+
+            let nextX = currentX + moveX * 5; // Multiplier for speed
+            let nextY = currentY + moveY * 5;
+
+            // Strict Clamping to Viewport
+            const viewportW = window.innerWidth;
+            const viewportH = window.innerHeight;
+
+            // Ensure we don't go off screen (0 to MaxWidth - BtnWidth)
+            // Add a small margin (padding) so it doesn't touch the absolute edge
+            const margin = 20;
+            const minX = margin;
+            const minY = margin;
+            const maxX = viewportW - btnW - margin;
+            const maxY = viewportH - btnH - margin;
+
+            // Wall sliding logic
+            if (nextX <= minX || nextX >= maxX) {
+                // If hitting X wall, redirect force to Y
+                moveY += Math.sign(dy) * 20;
+            }
+            if (nextY <= minY || nextY >= maxY) {
+                // If hitting Y wall, redirect force to X
+                moveX += Math.sign(dx) * 20;
             }
 
-            setNoButtonPos({ x: newX, y: newY });
+            // Apply clamp
+            nextX = Math.max(minX, Math.min(maxX, nextX));
+            nextY = Math.max(minY, Math.min(maxY, nextY));
+
+            posRef.current = { x: nextX, y: nextY };
+            setNoButtonPos({ x: nextX, y: nextY });
+        } else {
+            stopTicking();
         }
-    };
+    }, [accepted, level, MAX_LEVEL, startTicking, stopTicking]);
+
+    useEffect(() => {
+        window.addEventListener('mousemove', handleMouseMove);
+        return () => {
+            window.removeEventListener('mousemove', handleMouseMove);
+            stopTicking();
+        };
+    }, [handleMouseMove, stopTicking]);
 
     const handleYesClick = () => {
+        stopTicking();
         setAccepted(true);
-        const duration = 15 * 1000;
-        const animationEnd = Date.now() + duration;
-        const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
-
-        const randomInRange = (min: number, max: number) => Math.random() * (max - min) + min;
-
-        const interval: any = setInterval(function () {
-            const timeLeft = animationEnd - Date.now();
-
-            if (timeLeft <= 0) {
-                return clearInterval(interval);
-            }
-
-            const particleCount = 50 * (timeLeft / duration);
-            confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } });
-            confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } });
-        }, 250);
-    };
-
-    const getNoButtonText = () => {
-        return NO_EXPRESSIONS[Math.min(level, NO_EXPRESSIONS.length - 1)];
     };
 
     if (accepted) {
-        return (
-            <motion.div
-                initial={{ scale: 0, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                className="text-center space-y-8"
-            >
-                <motion.div
-                    animate={{
-                        scale: [1, 1.2, 1],
-                        rotate: [0, 10, -10, 0],
-                    }}
-                    transition={{ duration: 2, repeat: Infinity }}
-                    className="text-9xl"
-                >
-                    ❤️
-                </motion.div>
-                <h1 className="text-5xl font-bold text-primary drop-shadow-lg px-4">
-                    Yay! See you on the 14th, {name}! 🥰
-                </h1>
-                <p className="text-xl text-secondary">You made me the luckiest person!</p>
-            </motion.div>
-        );
+        return <SuccessScreen name={name} />;
     }
 
+    if (!isInitialized) return null; // Prevent hydration mismatch or flash
+
     return (
-        <div
-            ref={containerRef}
-            className="relative flex flex-col items-center justify-center min-h-[70vh] w-full max-w-4xl p-8 rounded-3xl bg-white/30 backdrop-blur-md border border-white/50 shadow-2xl overflow-hidden select-none"
-        >
-            <AnimatePresence mode="wait">
-                <motion.div
-                    key={level}
-                    initial={{ y: 20, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    exit={{ y: -20, opacity: 0 }}
-                    className="text-center mb-12"
-                >
-                    <div className="text-6xl mb-4">💝</div>
-                    <h1 className="text-4xl md:text-6xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent px-4">
-                        {name}, will you be my Valentine?
-                    </h1>
-                </motion.div>
-            </AnimatePresence>
+        <div className="fixed inset-0 w-screen h-screen overflow-hidden bg-[var(--background)]">
 
-            <div className="relative flex flex-wrap items-center justify-center gap-8 min-h-[300px] w-full">
-                {/* YES BUTTON */}
-                <motion.button
-                    onClick={handleYesClick}
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.9 }}
-                    animate={{
-                        scale: 1 + level * 0.15, // Grows faster over 10 levels
-                        boxShadow: level > 5 ? "0 0 30px rgba(255, 77, 109, 0.6)" : "none"
-                    }}
-                    className="px-8 py-4 bg-primary text-white text-2xl font-bold rounded-full shadow-lg hover:bg-primary/90 transition-colors z-10"
-                >
-                    Yes!
-                </motion.button>
-
-                {/* NO BUTTON */}
-                <motion.button
-                    onMouseEnter={handleNoInteraction}
-                    onTouchStart={(e) => {
-                        e.preventDefault(); // Prevent accidental selection
-                        handleNoInteraction();
-                    }}
-                    onClick={level >= MAX_LEVEL ? handleYesClick : (e) => {
-                        // Action of clicking it if it somehow gets clicked
-                        handleNoInteraction();
-                    }}
-                    animate={{
-                        x: noButtonPos.x,
-                        y: noButtonPos.y,
-                        scale: Math.max(0.4, 1 - level * 0.08),
-                        rotate: level >= 7 ? [0, -5, 5, 0] : 0,
-                        opacity: level === 8 ? [1, 0.3, 1] : 1,
-                    }}
-                    transition={{
-                        type: "spring",
-                        stiffness: 400,
-                        damping: 25,
-                        rotate: { duration: 0.1, repeat: level >= 7 ? Infinity : 0 },
-                        opacity: { duration: 0.3, repeat: level === 8 ? Infinity : 0 }
-                    }}
-                    className={`px-8 py-4 border-2 border-primary text-primary text-2xl font-bold rounded-full transition-colors whitespace-nowrap ${level >= MAX_LEVEL ? "bg-primary text-white" : "bg-white/60 hover:bg-primary hover:text-white"
-                        }`}
-                >
-                    {getNoButtonText()}
-                </motion.button>
+            {/* Centered Content (Header & Yes Button) */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center justify-center gap-12 pointer-events-none">
+                <div className="pointer-events-auto">
+                    <QuestionHeader name={name} level={level} />
+                </div>
+                <div className="pointer-events-auto">
+                    <YesButton level={level} onClick={handleYesClick} />
+                </div>
             </div>
 
-            {/* Heart decoration that follows level */}
-            <motion.div
-                animate={{
-                    opacity: level / MAX_LEVEL,
-                    scale: 0.5 + (level / MAX_LEVEL)
+            {/* Free Roaming No Button */}
+            <div
+                className="absolute pointer-events-auto transition-transform duration-75 ease-linear will-change-transform"
+                style={{
+                    left: 0,
+                    top: 0,
+                    transform: `translate(${noButtonPos.x}px, ${noButtonPos.y}px)`,
                 }}
-                className="absolute top-4 right-4 text-4xl pointer-events-none"
             >
-                💖
-            </motion.div>
+                <NoButton
+                    ref={noButtonRef}
+                    level={level}
+                    maxLevel={MAX_LEVEL}
+                    position={{ x: 0, y: 0 }} // Managed by parent div div transform
+                    onInteraction={handleNoInteraction}
+                    onClick={level >= MAX_LEVEL ? handleYesClick : handleNoInteraction}
+                />
+            </div>
+
+            <HeartDecorator level={level} maxLevel={MAX_LEVEL} />
         </div>
     );
 };
